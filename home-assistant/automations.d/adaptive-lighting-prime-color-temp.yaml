@@ -1,0 +1,178 @@
+- id: adaptive-lighting-prime-color-temp
+  mode: single
+  alias: Prime adaptive lighting color temperature
+  description: |-
+    Primes the color temperature of lights while they are off to minimize
+    color temperature transition effects when they are turned on.
+  triggers:
+    - trigger: time_pattern
+      minutes: /5
+      id: prime_color_temp
+    - platform: homeassistant
+      event: start
+    ## apply the `execute_if_off` setting whenever a bulb turns off
+    # - trigger: state
+    #   entity_id:
+    #     - light.entrance
+    #     - light.family_room
+    #     - light.living_room
+    #     - light.tv_flood
+    #     - light.sofa_overhead
+    #     - light.kitchen
+    #     - light.dining_area
+    #     - light.hallway_section_1
+    #     - light.hallway_section_2
+    #     - light.work_room
+    #     - light.bedroom
+    #     - light.master_bedroom
+    #   to:
+    #     - 'off'
+    ## apply the `execute_if_off` setting whenever a bulb comes online
+    # - trigger: state
+    #   entity_id:
+    #     - light.entrance
+    #     - light.family_room
+    #     - light.living_room
+    #     - light.tv_flood
+    #     - light.sofa_overhead
+    #     - light.kitchen
+    #     - light.dining_area
+    #     - light.hallway_section_1
+    #     - light.hallway_section_2
+    #     - light.work_room
+    #     - light.bedroom
+    #     - light.master_bedroom
+    #   from:
+    #     - 'unavailable'
+  conditions: []
+  variables:
+    lifx_light_entities: |-
+      {{integration_entities("lifx") |
+        select("match", "^light\.") |
+        expand |
+        map(attribute='entity_id') |
+        list}}
+    mqtt_light_entities: |-
+      {{integration_entities("mqtt") |
+        select("match", "^light\.") |
+        expand |
+        map(attribute='entity_id') |
+        list}}
+    lights_to_skip_config: []
+    adaptive_lighting_switch_entities: |-
+      {%set ns=namespace(list=[])%}
+      {%for _ in integration_entities("adaptive_lighting") |
+                 select("match", "^switch\.(\w+_|)adaptive_lighting_adapt_color(|_\w+)") |
+                 expand |
+                 selectattr("state", "==", "on") |
+                 map(attribute="entity_id") |
+                 list%}
+        {%set ns.list=ns.list + [_|replace("_adapt_color", "")]%}
+      {%endfor%}
+      {{ns.list}}
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id:
+          - prime_color_temp
+      sequence:
+      - repeat:
+          for_each: '{{adaptive_lighting_switch_entities}}'
+          sequence:
+            - variables:
+                adaptive_lighting_switch_entity: '{{repeat.item}}'
+                adaptive_lighting_light_entities: |-
+                  {{state_attr(adaptive_lighting_switch_entity, "configuration").lights |
+                    expand |
+                    selectattr("attributes.supported_color_modes", "defined") |
+                    selectattr("attributes.supported_color_modes", "contains", "color_temp") |
+                    selectattr("state", "==", "off") |
+                    map(attribute="entity_id") |
+                    list}}
+                adaptive_lighting_color_temperature: |-
+                  {{state_attr(adaptive_lighting_switch_entity, "color_temp_mired")}}
+            - repeat:
+                for_each: '{{adaptive_lighting_light_entities}}'
+                sequence:
+                  - variables:
+                      light_entity: '{{repeat.item}}'
+                  - choose:
+                    - conditions:
+                      - condition: template
+                        value_template: |-
+                          {{light_entity in lifx_light_entities}}
+                      sequence:
+                      - action: lifx.set_state
+                        data:
+                          color_temp: '{{adaptive_lighting_color_temperature}}'
+                        target:
+                          entity_id: '{{light_entity}}'
+                    - conditions:
+                      - condition: and
+                        conditions:
+                        - condition: template
+                          value_template: |-
+                            {{light_entity in mqtt_light_entities}}
+                        - condition: template
+                          value_template: |-
+                            {{light_entity not in lights_to_skip_config}}
+                      sequence:
+                      - variables:
+                          mqtt_topic: |-
+                            zigbee2mqtt/{{state_attr(light_entity, "friendly_name")}}/set
+                      # - action: mqtt.publish
+                      #   data_template:
+                      #     topic: '{{mqtt_topic}}'
+                      #     payload: |-
+                      #       {
+                      #         "color_options": {
+                      #           "execute_if_off": "true"
+                      #         }
+                      #       }
+                      # - delay:
+                      #     hours:        0
+                      #     minutes:      0
+                      #     seconds:      0
+                      #     milliseconds: 100
+                      - action: mqtt.publish
+                        data_template:
+                          topic: '{{mqtt_topic}}'
+                          payload: |-
+                            {
+                              "color_temp": {{adaptive_lighting_color_temperature}},
+                              "transition": 0
+                            }
+    default:
+    - variables:
+        light_entities: |-
+          {%set ns=namespace(list=[])%}
+          {%for adaptive_lighting_switch_entity in adaptive_lighting_switch_entities%}
+            {%for _ in state_attr(adaptive_lighting_switch_entity, "configuration").lights |
+                                  expand |
+                                  selectattr("attributes.supported_color_modes", "defined") |
+                                  selectattr("attributes.supported_color_modes", "contains", "color_temp") |
+                                  map(attribute="entity_id") |
+                                  list%}
+              {%if _ in mqtt_light_entities%}
+                {%set ns.list=ns.list + [_]%}
+              {%endif%}
+            {%endfor%}
+          {%endfor%}
+          {{ns.list}}
+    - repeat:
+        for_each: '{{light_entities}}'
+        sequence:
+        - variables:
+            light_entity: '{{repeat.item}}'
+            mqtt_topic: |-
+              zigbee2mqtt/{{state_attr(light_entity, "friendly_name")}}/set
+        - action: mqtt.publish
+          data_template:
+            topic: '{{mqtt_topic}}'
+            payload: |-
+              {
+                "color_options": {
+                  "execute_if_off": "true"
+                }
+              }
