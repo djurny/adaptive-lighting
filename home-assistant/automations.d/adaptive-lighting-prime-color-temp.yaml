@@ -150,7 +150,7 @@
             expand |
             rejectattr("attributes.configuration.lights", "defined") |
             map(attribute='entity_id') |
-            list}}'
+            list}}
     - if:
       - condition: template
         value_template: '{{adaptive_lighting_switch_entities_to_configure | length > 0}}'
