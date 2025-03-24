@@ -144,6 +144,18 @@
                               "transition": 0
                             }
     default:
+    - repeat:
+        for_each: |-
+          {{adaptive_lighting_switch_entities |
+            expand |
+            rejectattr("attributes.configuration.lights", "defined") |
+            map(attribute='entity_id') |
+            list}}'
+        sequence:
+        - service: adaptive_lighting.change_switch_settings
+          data:
+            entity_id: '{{repeat.item}}'
+            include_config_in_attributes: true
     - variables:
         light_entities: |-
           {%set ns=namespace(list=[])%}
