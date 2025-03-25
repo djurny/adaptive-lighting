@@ -7,25 +7,25 @@ This makes sure that when the light is turned on, it will already have the most 
 
 The interval is set to 5 minutes, so if you turn a light off and on again within that period, the `color_temp` will not be updated.
 
-This approach works for Zigbee enabled bulbs, that support the `execute_if_off` feature for `color_options` - be aware that some lights do not support this.
+This approach works for Zigbee enabled bulbs (through MQTT), that support the `execute_if_off` feature for `color_options` - be aware that some lights do not support this.
 
 There is also some action for LiFX bulbs, but they really do not need this; they already start with the color temperature that is given at `light.turn_on`, without transition. (Same goes for WiZ connected lights.)
 
-In order for the automation to list all lights that are under adaptive lighting control, the adaptive lighting switch setting `include_config_in_attributes` needs to be enabled, but to be sure, the automation also tries to do this for you.
+In order for the automation to list all figure out which lights are under adaptive lighting control, the adaptive lighting switch setting `include_config_in_attributes` needs to be enabled. For your convenience, the automation also tries to do this for you when the `default` choice is executed.
 
 ### `color_options`: `execute_if_off`
-In order to set the `color_temp` when the lights are off, the `execute_if_off` needs to be set. The automation will not do this periodically, rather, you will have to start the automation manually once. This will execute the `default` choice of the automation, which set `execute_if_off` to all Zigbee lights that are controlled by any adaptive lighting instance (and that support setting `color_temp`). You can trigger this configuration also when lights become "available", by adding triggers to the automation. In the YAML there are two `triggers` that will execute the `default` choice:
+In order to set the `color_temp` when the lights are off, the `execute_if_off` feature in `color_options` needs to be enabled. The automation will not do this periodically, rather, you will have to manually trigger the automation. This will execute the `default` choice of the automation, which will enable the `execute_if_off` feature in `color_options` in all Zigbee lights that are controlled by any adaptive lighting instance (and that support setting `color_temp`). You can trigger this configuration also when lights become "available", by adding triggers to the automation. In the YAML there are three `triggers` that will execute the `default` choice:
 1. home assistant startup
 
    This _might_ work, but I have not seen it work properly in my setup. Once home assistant has started, the MQTT integration is not always ready to accept any commands yet.
 1. When lights are turned off
-   
+
    This should work if you populate the `entity_id`s of the lights that you have configured in adaptive lighting instasnces.
 1. When a light becomes 'online'
-   
+
    This _should_ work when for example the MQTT integration is ready, all MQTT/Zigbee controlled lights leave the 'Unavailable' or 'Unknown' state, the `default` choice will run and configure all lights to make the automation work.
 
-You can also decide to uncomment the part in the automation where the `execute_if_off` is enabled, so that it will always enable it before sending the `color_temp` to the light. In normal circumstances, you would only need to enable `execute_if_off` once, after the light gets re-paired to zigbee2mqtt or when zigbee2mqtt restarts. It's up to your personal preference.
+You can also decide to uncomment the part in the automation where the `{"color_options": {"execute_if_off": true}}` is `mqtt.publish`ed, so that it will ensure the light will accept setting the `color_temp` while being off. In normal circumstances, you would only need to publish `{"color_options": {"execute_if_off": true}}` once, after the light gets re-paired to zigbee2mqtt or when zigbee2mqtt restarts. It's up to your personal preference.
 
 # How to add the automation to home assistant?
 ## Using the frontend
