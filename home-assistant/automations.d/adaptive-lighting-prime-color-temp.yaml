@@ -145,7 +145,7 @@
                             }
     default:
     - variables:
-        adaptive_lighting_switch_entities_to_configure: |-
+        adaptive_lighting_switches_requiring_settings_change: |-
           {{adaptive_lighting_switch_entities |
             expand |
             rejectattr("attributes.configuration.lights", "defined") |
@@ -153,10 +153,10 @@
             list}}
     - if:
       - condition: template
-        value_template: '{{adaptive_lighting_switch_entities_to_configure | length > 0}}'
+        value_template: '{{adaptive_lighting_switches_requiring_settings_change | length > 0}}'
       then:
       - repeat:
-          for_each: '{{adaptive_lighting_switch_entities_to_configure}}'
+          for_each: '{{adaptive_lighting_switches_requiring_settings_change}}'
           sequence:
           - service: adaptive_lighting.change_switch_settings
             data:
