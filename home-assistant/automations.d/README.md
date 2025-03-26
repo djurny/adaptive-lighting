@@ -39,14 +39,11 @@ You can also decide to uncomment the part in the automation where the `{"color_o
 1. Click in the edit window.
 1. Remove all template boilerplate text.
 1. Paste the contents of the automation.
-1. Replace the hyphen on the first line with a single whitespace:
+1. **Remove** the first line:
    ```
    - id: adaptive-lighting-prime-color-temp
    ```
-     after removal:
-   ```
-     id: adaptive-lighting-prime-color-temp
-   ```
+   (Ref [Setup timing out](https://github.com/djurny/adaptive-lighting/issues/3), https://github.com/djurny/adaptive-lighting/issues/3#issuecomment-2754917583.)
 1. Click `SAVE`.
 1. Click `RENAME` in the pop-up window.
 1. Click `Settings` on the left side bar.
