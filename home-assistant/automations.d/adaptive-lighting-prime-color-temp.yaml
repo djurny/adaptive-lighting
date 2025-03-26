@@ -90,8 +90,10 @@
                     selectattr("state", "==", "off") |
                     map(attribute="entity_id") |
                     list}}
-                adaptive_lighting_color_temperature: |-
+                adaptive_lighting_color_temperature_mired: |-
                   {{state_attr(adaptive_lighting_switch_entity, "color_temp_mired")}}
+                adaptive_lighting_color_temperature_kelvin: |-
+                  {{state_attr(adaptive_lighting_switch_entity, "color_temp_kelvin")}}
             - repeat:
                 for_each: '{{adaptive_lighting_light_entities}}'
                 sequence:
@@ -105,7 +107,7 @@
                       sequence:
                       - action: lifx.set_state
                         data:
-                          color_temp: '{{adaptive_lighting_color_temperature}}'
+                          color_temp_kelvin: '{{adaptive_lighting_color_temperature_kelvin}}'
                         target:
                           entity_id: '{{light_entity}}'
                     - conditions:
@@ -140,7 +142,7 @@
                           topic: '{{mqtt_topic}}'
                           payload: |-
                             {
-                              "color_temp": {{adaptive_lighting_color_temperature}},
+                              "color_temp": {{adaptive_lighting_color_temperature_mired}},
                               "transition": 0
                             }
     default:
