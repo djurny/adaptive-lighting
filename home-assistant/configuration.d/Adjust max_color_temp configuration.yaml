@@ -1,3 +1,6 @@
+## NOTE:
+## Add the following to your configuration.yaml.
+## If you already have `sensor` list defined, add them to that list.
 sensor:
   - platform: statistics
     name: "Averaged cloud coverage"
@@ -11,10 +14,15 @@ sensor:
       seconds: 0
     precision: 0
 
+## NOTE:
+## Add the following to your configuration.yaml.
+## If you already have `template` list defined, add them to that list.
 template:
   - trigger:
+    ## update the sensor value when `averaged_cloud_coverage` has changed
     - platform: state
       entity_id: sensor.averaged_cloud_coverage
+    ## update when home assistant starts
     - platform: homeassistant
       event: start
     sensor:
