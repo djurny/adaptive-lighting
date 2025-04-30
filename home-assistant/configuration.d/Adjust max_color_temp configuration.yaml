@@ -1,0 +1,66 @@
+sensor:
+  - platform: statistics
+    name: "Averaged cloud coverage"
+    unique_id: averaged_cloud_coverage
+    entity_id: sensor.openweathermap_cloud_coverage
+    state_characteristic: average_linear
+    keep_last_sample: true
+    max_age:
+      hours: 2
+      minutes: 0
+      seconds: 0
+    precision: 0
+
+template:
+  - trigger:
+    - platform: state
+      entity_id: sensor.averaged_cloud_coverage
+    - platform: homeassistant
+      event: start
+    sensor:
+    - name: "Gloom"
+      unique_id: gloom
+      icon: mdi:weather-partly-cloudy
+      state: |-
+        {%if trigger.to_state is defined%}
+          {%set cloud_coverage_pct=[0, [100, trigger.to_state.state|int(0)]|min]|max%}
+        {%elif trigger.from_state is defined%}
+          {%set cloud_coverage_pct=[0, [100, trigger.from_state.state|int(0)]|min]|max%}
+        {%else%}
+          {%set cloud_coverage_pct=states("sensor.averaged_cloud_coverage")|int(0)%}
+        {%endif%}
+        {%set overcast_limits={
+          "low": 60,
+          "high": 100,
+        }%}
+        {%set overcast_range=(overcast_limits.high - overcast_limits.low)|abs%}
+        {%set overcast_amount=cloud_coverage_pct - overcast_limits.low%}
+        {%set overcast_ratio=overcast_amount / overcast_range%}
+        {{[0, [(overcast_ratio*100)|int, 100]|min]|max}}
+      unit_of_measurement: '%'
+
+  - trigger:
+    - platform: state
+      entity_id: sensor.gloom
+    - platform: homeassistant
+      event: start
+    sensor:
+    - name: "Gloom: max_color_temp target"
+      unique_id: gloom_max_color_temp_target
+      icon: mdi:target
+      state: |-
+        {%if trigger.to_state is defined %}
+          {%set gloom_pct=[0, [100, trigger.to_state.state|int(0)]|min]|max%}
+        {%elif trigger.from_state is defined %}
+          {%set gloom_pct=[0, [100, trigger.from_state.state|int(0)]|min]|max%}
+        {%else%}
+          {%set gloom_pct=states("sensor.gloom")|int(0)%}
+        {%endif%}
+        {%set max_color_temp_limits={
+          "low": 3400,
+          "high": 4000,
+        }%}
+        {%set max_color_temp_range=(max_color_temp_limits.high - max_color_temp_limits.low)|abs%}
+        {%set max_color_temp_adjustment=gloom_pct * max_color_temp_range / 100%}
+        {{(max_color_temp_limits.high - max_color_temp_adjustment)|int}}
+      unit_of_measurement: 'K'

@@ -1,0 +1,90 @@
+## NOTE:
+## remove the '- id:' line when copy/pasting into frontend automation editor
+- id: adjust_adaptive_lighting_max_color_temp
+  alias: |-
+    Adjust adaptive lighting max_color_temp
+  description: |-
+    Adjust the maximum color temperature used by adaptive lighting based on
+    averaged cloud coverage sensor. This will translate to lower calculated
+    color temperature applied by adaptive lighting.
+  ##
+  variables:
+    _entity_id:
+      adaptive_lighting:
+        switch: |-
+          {{integration_entities('adaptive_lighting') |
+            select('match', '^switch\.(\w+|)adaptive_lighting(|_\w+)') |
+            reject('match', '^switch\.(\w+|)adaptive_lighting_adapt(|_\w+)') |
+            reject('match', '^switch\.(\w+|)adaptive_lighting_sleep_mode(|_\w+)') |
+            list}}
+    ## the target `max_color_temp` to move towards to
+    _max_color_temp_target: |-
+      {%set ns=namespace()%}
+      {%set ns.value=states("sensor.gloom_max_color_temp_target")|int(-1)%}
+      {%if ns.value < 0%}
+        4000
+      {%else%}
+        {{ns.value}}
+      {%endif%}
+    ## the current `max_color_temp`
+    _max_color_temp_setpoint_current: |-
+      {%set ns=namespace()%}
+      {%set ns.value=states("input_number.gloom_max_color_temp_setpoint")|int(-1)%}
+      {%if ns.value < 0%}
+        4000
+      {%else%}
+        {{ns.value}}
+      {%endif%}
+    ## the new `max_color_temp` to be set
+    ## step towards target with 25 Kelvin increments to enable smooth changes
+    _max_color_temp_setpoint_new: |-
+      {%if _max_color_temp_setpoint_current < _max_color_temp_target%}
+        {{[_max_color_temp_target,
+           _max_color_temp_setpoint_current + 25]|min}}
+      {%elif _max_color_temp_setpoint_current > _max_color_temp_target%}
+        {{[_max_color_temp_target,
+           _max_color_temp_setpoint_current - 25]|max}}
+      {%else%}
+        {{_max_color_temp_target}}
+      {%endif%}
+  ##
+  triggers:
+  ## adjust the `_max_color_temp` every minute if required
+  - trigger: time_pattern
+    minutes: "/1"
+    id: adjust_max_color_temp
+  ##
+  condition:
+  - condition: and
+    conditions:
+    - condition: trigger
+      id: adjust_max_color_temp
+    ## only adjust when sun is up
+    - condition: template
+      value_template: |-
+        {{is_state("sun.sun", "above_horizon")}}
+    ## only adjust if current `color_temp` is not on target
+    - condition: template
+      value_template: |-
+        {{_max_color_temp_setpoint_current != _max_color_temp_target}}
+  ##
+  action:
+  - parallel:
+    - sequence:
+      ## update helper with new `color_temp` setpoint
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.gloom_max_color_temp_setpoint
+        data:
+          value: |-
+            {{_max_color_temp_setpoint_new}}
+    - sequence:
+      ## update the `color_temp`
+      - service: adaptive_lighting.change_switch_settings
+        data:
+          entity_id: '{{_entity_id.adaptive_lighting.switch}}'
+          max_color_temp: |-
+            {{_max_color_temp_setpoint_new}}
+  ##
+  mode: queued
+
