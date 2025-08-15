@@ -19,12 +19,12 @@
           reject('match', '^switch\.(\w+|)adaptive_lighting_sleep_mode(|_\w+)') |
           list}}
       brightness_mode_time:
-        light:
-          sunrise:  3600
-          sunset:   60
-        dark:
-          sunrise:  60
-          sunset:   3600
+        sunrise:
+          light:  3600
+          dark:   60
+        sunset:
+          light:  60
+          dark:   3600
   ##
   triggers:
   - platform:     state
@@ -55,7 +55,7 @@
           data:
             entity_id: '{{repeat.item}}'
             brightness_mode_time_light: |-
-              {%set time = _adaptive_lighting.brightness_mode_time.light.sunrise%}
+              {%set time = _adaptive_lighting.brightness_mode_time.sunrise.light%}
               {%set sunrise_wanted_at = state_attr(repeat.item,"configuration")["max_sunrise_time"]%}
               {%if sunrise_wanted_at is not none%}
                 {%set sunrise_wanted_at = today_at(sunrise_wanted_at)%}
@@ -64,14 +64,14 @@
                 {%endif%}
                 {%set sunrise_actual_at = state_attr("sun.sun","next_rising")|as_datetime|as_local%}
                 {%set time = [
-                  _adaptive_lighting.brightness_mode_time.light.sunrise,
+                  _adaptive_lighting.brightness_mode_time.sunrise.light,
                   (sunrise_wanted_at-sunrise_actual_at).total_seconds()]|max%}
               {%endif%}
               {{time|int}}
         - service: adaptive_lighting.change_switch_settings
           data:
             entity_id: '{{repeat.item}}'
-            brightness_mode_time_dark: '{{_adaptive_lighting.brightness_mode_time.dark.sunrise}}'
+            brightness_mode_time_dark: '{{_adaptive_lighting.brightness_mode_time.sunrise.dark}}'
     else:
     - repeat:
         for_each: '{{_adaptive_lighting.entity_id}}'
@@ -82,7 +82,7 @@
           data:
             entity_id: '{{repeat.item}}'
             brightness_mode_time_dark: |-
-              {%set time = _adaptive_lighting.brightness_mode_time.dark.sunset%}
+              {%set time = _adaptive_lighting.brightness_mode_time.sunset.dark%}
               {%set sunset_wanted_at = state_attr(repeat.item,"configuration")["max_sunset_time"]%}
               {%if sunset_wanted_at is not none%}
                 {%set sunset_wanted_at = today_at(sunset_wanted_at)%}
@@ -91,14 +91,14 @@
                 {%endif%}
                 {%set sunset_actual_at = state_attr("sun.sun","next_setting")|as_datetime|as_local%}
                 {%set time = [
-                  _adaptive_lighting.brightness_mode_time.dark.sunset,
+                  _adaptive_lighting.brightness_mode_time.sunset.dark,
                   (sunset_wanted_at-sunset_actual_at).total_seconds()]|max%}
               {%endif%}
               {{time|int}}
         - service: adaptive_lighting.change_switch_settings
           data:
             entity_id: '{{repeat.item}}'
-            brightness_mode_time_light: '{{_adaptive_lighting.brightness_mode_time.light.sunset}}'
+            brightness_mode_time_light: '{{_adaptive_lighting.brightness_mode_time.sunset.light}}'
   ##
   mode: queued
 
