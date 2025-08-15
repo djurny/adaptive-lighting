@@ -4,11 +4,11 @@
   alias: |-
     Adjust adaptive lighting brightness_mode_time
   description: |-
-    Adjust the brightness_mode_times for 'dark' and 'light' depending on
-    max_sunrise_time and max_sunset_time. This will make adaptive lighting stretch the brightness change out
-    until the max_sunrise_time or max_sunset_time.
-    There are two sets of settings, one for sunrise and one for sunset. At solar noon, the settings for
-    sunset are applied and at solar midnight the settings for sunrise are applied.
+    Adjust the brightness_mode_times for 'dark' and 'light' depending on max_sunrise_time and max_sunset_time. 
+    This will make adaptive lighting stretch the brightness change out from sunrise until the max_sunrise_time 
+    or from sunset to max_sunset_time.
+    There are two sets of settings, one for sunrise and one for sunset. At solar noon, the settings for sunset 
+    are applied and at solar midnight the settings for sunrise are applied.
   ##
   variables:
     _adaptive_lighting:
